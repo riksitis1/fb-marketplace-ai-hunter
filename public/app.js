@@ -22,6 +22,16 @@
   function safeUrl(u, fallback) {
     try { const p = new URL(u); return p.protocol === 'https:' ? p.href : fallback; } catch { return fallback; }
   }
+  // Parse a response as JSON; if the server/proxy sent HTML, surface the HTTP status instead
+  async function readJson(res) {
+    const text = await res.text();
+    try { return JSON.parse(text); } catch {
+      const hint = res.status === 502 || res.status === 503 || res.status === 504
+        ? 'The server is waking up or restarting - wait 30 seconds and try again.'
+        : 'The server sent an unexpected response.';
+      throw new Error(`HTTP ${res.status}: ${hint}`);
+    }
+  }
   // DOM Elements
   const elements = {
     // Nav & Pills
@@ -194,7 +204,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cookies })
       });
-      const data = await res.json();
+      const data = await readJson(res);
       elements.verifySpinner.classList.add('hidden');
 
       if (data.valid) {
@@ -298,7 +308,7 @@
         })
       });
 
-      const searchData = await searchRes.json();
+      const searchData = await readJson(searchRes);
 
       if (!searchRes.ok || !searchData.success) {
         throw new Error(searchData.error || 'Failed to search Marketplace.');
@@ -366,7 +376,7 @@
         })
       });
 
-      const aiData = await aiRes.json();
+      const aiData = await readJson(aiRes);
       if (!aiRes.ok || !aiData.success) {
         throw new Error(aiData.error || 'Gemini analysis failed.');
       }
@@ -680,7 +690,7 @@
           geminiApiKey: state.geminiApiKey
         })
       });
-      const data = await res.json();
+      const data = await readJson(res);
       if (data.success && Array.isArray(data.messages)) {
         renderMessagesList(data.messages);
       } else {

@@ -177,29 +177,39 @@ function extractFacebookListings(html, query, locationName) {
       }
 
       // Alternative Comet search match
-      const altRegex = /"marketplace_listing_title":"([^"]+)"[\s\S]*?"formatted_amount":"([^"]+)"[\s\S]*?"id":"(\d+)"/g;
-      let altMatch;
-      while ((altMatch = altRegex.exec(content)) !== null) {
-        const title = altMatch[1];
-        const price = altMatch[2];
-        const id = altMatch[3];
-        if (id && !seenIds.has(id)) {
-          seenIds.add(id);
-          const numPrice = parseFloat(String(price).replace(/[^0-9.]/g, '')) || 0;
-          listings.push({
-            id: id,
-            title: title.replace(/\\u[\dA-F]{4}/gi, (m) => String.fromCharCode(parseInt(m.replace('\\u', ''), 16))),
-            price: price,
-            numericPrice: numPrice,
-            currency: price.replace(/[0-9., ]/g, '') || '$',
-            location: locationName || 'Local Area',
-            image: 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=600&q=80',
-            link: `https://www.facebook.com/marketplace/item/${id}/`,
-            sellerName: 'Marketplace Seller',
-            isLive: true
-          });
-        }
-      }
+      // Alternative Comet search match: split the payload at each listing title and
+      // read price / id / photo from the segment that belongs to that listing.
+      const unesc = (s) => { try { return JSON.parse(`"${s}"`); } catch { return s; } };
+      const titleRegex = /"marketplace_listing_title":"((?:[^"\\]|\\.)*)"/g;
+      const marks = [];
+      let tm;
+      while ((tm = titleRegex.exec(content)) !== null) marks.push({ index: tm.index, title: tm[1] });
+
+      marks.forEach((mark, i) => {
+        const end = i + 1 < marks.length ? marks[i + 1].index : Math.min(content.length, mark.index + 6000);
+        const segment = content.slice(mark.index, end);
+        const priceM = segment.match(/"formatted_amount":"((?:[^"\\]|\\.)*)"/);
+        const idM = segment.match(/"id":"(\d{8,})"/);
+        if (!priceM || !idM || seenIds.has(idM[1])) return;
+        // Only use a photo found inside this listing's own segment (never a neighbour's)
+        const photoRe = /"(?:primary_listing_photo|listing_photos?)"[\s\S]{0,300}?"uri":"((?:[^"\\]|\\.)*)"/;
+        const photoM = segment.match(photoRe);
+        const price = unesc(priceM[1]);
+        const image = photoM ? unesc(photoM[1]) : '';
+        seenIds.add(idM[1]);
+        listings.push({
+          id: idM[1],
+          title: unesc(mark.title),
+          price,
+          numericPrice: parseFloat(String(price).replace(/[^0-9.]/g, '')) || 0,
+          currency: price.replace(/[0-9., ]/g, '') || '$',
+          location: locationName || 'Local Area',
+          image: image.startsWith('https://') ? image : 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=600&q=80',
+          link: `https://www.facebook.com/marketplace/item/${idM[1]}/`,
+          sellerName: 'Marketplace Seller',
+          isLive: true
+        });
+      });
     }
   } catch (err) {
     console.error('Error during HTML listing parsing:', err);
@@ -599,6 +609,17 @@ Return strictly valid JSON:
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// Unknown API routes and errors always answer in JSON (never an HTML error page)
+app.all('/api/*', (req, res) => res.status(404).json({ success: false, error: 'Unknown API route.' }));
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    success: false,
+    error: status === 413 ? 'Request too large.' : status === 400 ? 'Bad request.' : 'Server error.'
+  });
 });
 
 // Catch-all route to serve the Single Page App
