@@ -19,6 +19,14 @@ Designed for instant, frictionless deployment on **Render** (or any Node.js clou
 
 ---
 
+## 👥 Multi-user & Privacy
+
+Built to be shared with friends on one Render URL:
+- API keys, cookies and saved deals live **only in each visitor's own browser** (`localStorage`). The server stores nothing per user.
+- There is **no server-side fallback key** — every user supplies their own Gemini key.
+- Keys are sent in the `x-goog-api-key` header (never in URLs/logs); API responses are `no-store`; CORS is same-origin only; per-IP rate limiting; untrusted listing text is HTML-escaped.
+- **Clear my data** in Settings wipes everything from that browser.
+
 ## 🚀 Quick Start (Local Development)
 
 ```bash
@@ -84,3 +92,4 @@ http://localhost:10000 (or http://localhost:3000)
 
 ## ⚖️ License
 MIT License. Created by Riko.
+

@@ -7,8 +7,47 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+const ALLOWED_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+
+// Behind Render's proxy: use the real client IP for rate limiting
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+
+// Same-origin only: the UI is served by this server, so no cross-site API use
+app.use(cors({ origin: false }));
+app.use(express.json({ limit: '2mb' }));
+
+// Security headers + never cache API responses (they may contain per-user data)
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
+// Simple in-memory per-IP rate limiter (nothing user-specific is persisted)
+const rateBuckets = new Map();
+function rateLimit(max, windowMs) {
+  return (req, res, next) => {
+    const now = Date.now();
+    const bucket = rateBuckets.get(req.ip + req.path);
+    if (!bucket || now > bucket.reset) {
+      rateBuckets.set(req.ip + req.path, { count: 1, reset: now + windowMs });
+      return next();
+    }
+    if (++bucket.count > max) {
+      return res.status(429).json({ success: false, error: 'Too many requests. Please slow down.' });
+    }
+    next();
+  };
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of rateBuckets) if (now > v.reset) rateBuckets.delete(k);
+}, 60000).unref();
+app.use('/api/', rateLimit(30, 60000));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Standard User-Agent for realistic web queries
@@ -38,7 +77,8 @@ function sanitizeCookies(rawCookies) {
       // Continue as plain text
     }
   }
-  return rawCookies.trim().replace(/[\r\n]+/g, ' ');
+  // Strip control chars / newlines to prevent header injection
+  return rawCookies.trim().replace(/[^\x20-\x7E]+/g, ' ');
 }
 
 // Validate Facebook Session Cookies
@@ -352,7 +392,9 @@ app.post('/api/analyze-deals', async (req, res) => {
   try {
     const { items, query, location, geminiApiKey, model = 'gemini-2.5-flash', customGoal } = req.body;
 
-    const apiKey = geminiApiKey || process.env.GEMINI_API_KEY;
+    // Each visitor must supply their own key; there is intentionally NO server-side fallback key.
+    const apiKey = typeof geminiApiKey === 'string' ? geminiApiKey.trim() : '';
+    const safeModel = ALLOWED_MODELS.includes(model) ? model : 'gemini-2.5-flash';
     if (!apiKey) {
       return res.status(400).json({
         success: false,
@@ -421,7 +463,7 @@ Respond ONLY with valid JSON conforming strictly to this format:
   ]
 }`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${safeModel}:generateContent`;
 
     const promptPayload = {
       contents: [
@@ -441,7 +483,7 @@ Respond ONLY with valid JSON conforming strictly to this format:
 
     const aiRes = await fetch(geminiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(promptPayload)
     });
 
@@ -513,9 +555,9 @@ Respond ONLY with valid JSON conforming strictly to this format:
 app.post('/api/generate-message', async (req, res) => {
   try {
     const { item, geminiApiKey, tone = 'cash_pickup' } = req.body;
-    const apiKey = geminiApiKey || process.env.GEMINI_API_KEY;
+    const apiKey = typeof geminiApiKey === 'string' ? geminiApiKey.trim() : '';
 
-    if (!apiKey) {
+    if (!apiKey || !item || typeof item !== 'object') {
       return res.status(400).json({ success: false, error: 'Gemini API key is required.' });
     }
 
@@ -539,10 +581,10 @@ Return strictly valid JSON:
   ]
 }`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
     const aiRes = await fetch(geminiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: { responseMimeType: 'application/json', temperature: 0.3 }
@@ -568,3 +610,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 FB Marketplace AI Hunter running on port ${PORT}`);
   console.log(`📡 Ready for Render deployment & local browsing: http://localhost:${PORT}`);
 });
+

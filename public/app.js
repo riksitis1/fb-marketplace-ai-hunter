@@ -14,6 +14,14 @@
     isAnalyzing: false
   };
 
+  const FALLBACK_IMG = 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=600&q=80';
+  // Escape untrusted text (listings come from other Facebook users)
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function safeUrl(u, fallback) {
+    try { const p = new URL(u); return p.protocol === 'https:' ? p.href : fallback; } catch { return fallback; }
+  }
   // DOM Elements
   const elements = {
     // Nav & Pills
@@ -320,7 +328,7 @@
       elements.cardsGrid.innerHTML = `
         <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--accent-rose);">
           <h3>Search Error</h3>
-          <p>${err.message}</p>
+          <p>${esc(err.message)}</p>
         </div>
       `;
       showToast(err.message, 'error');
@@ -475,48 +483,48 @@
       const isStealCard = score >= 90;
 
       return `
-        <div class="deal-card ${isStealCard ? 'card-steal' : ''}" data-id="${item.id}">
+        <div class="deal-card ${isStealCard ? 'card-steal' : ''}" data-id="${esc(item.id)}">
           <div class="card-img-box">
-            <img src="${item.image || 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=600&q=80'}" alt="${item.title}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=600&q=80'">
+            <img src="${esc(safeUrl(item.image, FALLBACK_IMG))}" alt="${esc(item.title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=600&q=80'">
             <div class="card-score-badge ${badgeClass}">${badgeText}</div>
-            <button class="card-bookmark-btn ${isBookmarked ? 'active' : ''}" data-bookmark-id="${item.id}" title="Save deal">
+            <button class="card-bookmark-btn ${isBookmarked ? 'active' : ''}" data-bookmark-id="${esc(item.id)}" title="Save deal">
               ★
             </button>
           </div>
 
           <div class="card-body">
-            <h3 class="card-title" title="${item.title}">${item.title}</h3>
+            <h3 class="card-title" title="${esc(item.title)}">${esc(item.title)}</h3>
             <div class="card-location-meta">
-              <span>📍 ${item.location || 'Local Area'}</span>
+              <span>📍 ${esc(item.location || 'Local Area')}</span>
               <span>•</span>
-              <span>👤 ${item.sellerName || 'Seller'}</span>
+              <span>👤 ${esc(item.sellerName || 'Seller')}</span>
             </div>
 
             <div class="card-price-grid">
               <div>
-                <span class="card-listed-price">${item.price}</span>
+                <span class="card-listed-price">${esc(item.price)}</span>
               </div>
               <div class="card-fmv-wrap">
                 <div class="card-fmv-label">Est. FMV</div>
-                <div class="card-fmv-val">${item.estimatedFmv || 'N/A'}</div>
+                <div class="card-fmv-val">${esc(item.estimatedFmv || 'N/A')}</div>
               </div>
             </div>
 
             ${item.estimatedProfit && item.estimatedProfit !== '$0' ? `
               <div class="card-profit-chip">
-                <span>💰 Est. Flip Profit: ${item.estimatedProfit}</span>
-                ${item.discountPercent ? `<span>(${item.discountPercent}% off)</span>` : ''}
+                <span>💰 Est. Flip Profit: ${esc(item.estimatedProfit)}</span>
+                ${item.discountPercent ? `<span>(${esc(item.discountPercent)}% off)</span>` : ''}
               </div>
             ` : ''}
 
-            <p class="card-ai-verdict">${item.verdict || 'Evaluation ready. Click inspect to generate offers.'}</p>
+            <p class="card-ai-verdict">${esc(item.verdict || 'Evaluation ready. Click inspect to generate offers.')}</p>
 
             <div class="card-actions">
-              <button class="inspect-btn" data-inspect-id="${item.id}">
+              <button class="inspect-btn" data-inspect-id="${esc(item.id)}">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 AI Inspector & Offers
               </button>
-              <a href="${item.link}" target="_blank" rel="noopener" class="fb-link-btn" title="Open on Facebook">
+              <a href="${esc(safeUrl(item.link, 'https://www.facebook.com/marketplace/'))}" target="_blank" rel="noopener" class="fb-link-btn" title="Open on Facebook">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               </a>
             </div>
@@ -584,7 +592,7 @@
 
     state.activeModalItem = item;
 
-    elements.modalItemImg.src = item.image || 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=600&q=80';
+    elements.modalItemImg.src = safeUrl(item.image, FALLBACK_IMG);
     elements.modalScoreBadge.textContent = `${item.dealScore || 50}/100`;
     elements.modalItemTitle.textContent = item.title;
     elements.modalItemPrice.textContent = item.price;
@@ -593,7 +601,7 @@
     elements.modalItemLoc.textContent = `📍 ${item.location || 'Local'}`;
     elements.modalItemSeller.textContent = `👤 ${item.sellerName || 'Marketplace Seller'}`;
     elements.modalItemDesc.textContent = item.description || 'No detailed description provided by seller.';
-    elements.modalItemFbLink.href = item.link;
+    elements.modalItemFbLink.href = safeUrl(item.link, 'https://www.facebook.com/marketplace/');
 
     elements.modalVerdictWord.textContent = item.badge || 'VALUATION';
     elements.modalVerdictDetails.textContent = item.verdict || 'Listing analyzed against market comps.';
@@ -604,7 +612,7 @@
 
     // Red flags
     if (Array.isArray(item.redFlags) && item.redFlags.length > 0) {
-      elements.modalFlagsList.innerHTML = item.redFlags.map(f => `<li style="color: var(--accent-rose);">⚠️ ${f}</li>`).join('');
+      elements.modalFlagsList.innerHTML = item.redFlags.map(f => `<li style="color: var(--accent-rose);">⚠️ ${esc(f)}</li>`).join('');
     } else {
       elements.modalFlagsList.innerHTML = '<li>✓ Clean listing - no suspicious red flags detected.</li>';
     }
@@ -675,8 +683,8 @@
   function renderMessagesList(messages) {
     elements.generatedMessagesList.innerHTML = messages.map(m => `
       <div class="message-card">
-        <div class="message-style-tag">${m.style}</div>
-        <p class="message-text">${m.text}</p>
+        <div class="message-style-tag">${esc(m.style)}</div>
+        <p class="message-text">${esc(m.text)}</p>
         <button class="copy-message-btn" data-copy-text="${encodeURIComponent(m.text)}">Copy Message</button>
       </div>
     `).join('');
@@ -747,6 +755,20 @@
     showToast('Exported deals to CSV!', 'success');
   });
 
+  // Wipe everything this browser has stored (key, cookies, bookmarks)
+  document.getElementById('clearDataBtn').addEventListener('click', () => {
+    if (!confirm('Remove your API key, Facebook cookies and saved deals from this browser?')) return;
+    Object.keys(localStorage).filter(k => k.startsWith('fb_hunter_')).forEach(k => localStorage.removeItem(k));
+    state.geminiApiKey = '';
+    state.fbCookies = '';
+    state.savedBookmarks = [];
+    elements.geminiApiKeyInput.value = '';
+    elements.fbCookiesInput.value = '';
+    updateStatusPills();
+    showToast('All your data was removed from this browser.', 'success');
+  });
+
   // Initialize
   initInputs();
 })();
+
