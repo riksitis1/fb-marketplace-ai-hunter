@@ -223,6 +223,11 @@
     localStorage.setItem('fb_hunter_cookies', state.fbCookies);
     localStorage.setItem('fb_hunter_gemini_model', state.geminiModel);
 
+    // Saving real cookies switches off demo mode so live Facebook data is used
+    if (state.fbCookies.includes('c_user=')) {
+      elements.demoModeToggle.checked = false;
+    }
+
     updateStatusPills();
     hideSettings();
     showToast('Credentials saved to your browser storage.', 'success');
@@ -300,7 +305,13 @@
       }
 
       state.listings = searchData.items || [];
-      elements.resultsSourceTag.textContent = searchData.source === 'live_facebook' ? 'Live Facebook Data' : 'Sandbox Simulated Data';
+      const sourceLabels = {
+        live_facebook: 'Live Facebook Data',
+        fallback_sandbox: 'Facebook returned no listings - showing SAMPLE data',
+        demo_sandbox: forceDemo && state.fbCookies ? 'Demo switch is ON - showing SAMPLE data' : 'Sandbox Simulated Data'
+      };
+      elements.resultsSourceTag.textContent = sourceLabels[searchData.source] || 'Sandbox Simulated Data';
+      if (searchData.notice) showToast(searchData.notice, 'warning', 8000);
       elements.resultsHeading.textContent = `Listings for "${query}" (${state.listings.length} found)`;
 
       if (state.listings.length === 0) {
