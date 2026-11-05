@@ -1,0 +1,28 @@
+{
+  "name": "fb-marketplace-ai-hunter",
+  "version": "1.0.0",
+  "description": "AI-Powered Facebook Marketplace Deal Hunter & Flipping Radar with Gemini AI analysis",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "facebook-marketplace",
+    "gemini-ai",
+    "deal-hunter",
+    "price-analysis",
+    "flipper",
+    "render"
+  ],
+  "author": "Riko",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

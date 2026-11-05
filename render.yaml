@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: fb-marketplace-ai-hunter
+    env: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000

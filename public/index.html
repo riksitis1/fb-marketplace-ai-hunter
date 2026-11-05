@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarketPulse AI — Facebook Marketplace Deal Hunter & Arbitrage Radar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body>
+  <!-- Background Glow & Grid -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- App Wrapper -->
+  <div class="app-container">
+
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="radar-beacon">
+          <span class="ping"></span>
+          <span class="dot"></span>
+        </div>
+        <div class="brand-text">
+          <h1>MarketPulse <span class="gradient-text">AI</span></h1>
+          <span class="brand-subtitle">Facebook Marketplace Deal Radar & Flipping Intelligence</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <!-- Status Pills -->
+        <div class="status-pill" id="fbStatusPill" title="Facebook Connection Status">
+          <span class="status-indicator warning"></span>
+          <span class="status-label">FB: Demo Mode</span>
+        </div>
+
+        <div class="status-pill" id="geminiStatusPill" title="Gemini AI Key Status">
+          <span class="status-indicator warning"></span>
+          <span class="status-label">AI: Key Needed</span>
+        </div>
+
+        <!-- Bookmarks Counter Button -->
+        <button class="icon-btn" id="savedDealsBtn" title="Saved Deals & Bookmarks">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+          <span class="badge-count" id="savedCountBadge">0</span>
+        </button>
+
+        <!-- Settings Button -->
+        <button class="settings-trigger-btn" id="openSettingsBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Credentials & Setup</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero / Search Control Radar -->
+    <section class="search-radar-card">
+      <div class="radar-card-header">
+        <div class="radar-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          DEAL RADAR ENGINE
+        </div>
+        <div class="mode-toggle-group">
+          <label class="toggle-switch" title="Toggle between Live Scraping with Cookies vs. Fast Sandbox Mock Data">
+            <input type="checkbox" id="demoModeToggle">
+            <span class="slider"></span>
+            <span class="toggle-label">Sandbox / Demo Data</span>
+          </label>
+        </div>
+      </div>
+
+      <form id="searchForm" class="search-form">
+        <!-- Main Search Query -->
+        <div class="form-row main-query-row">
+          <div class="input-field-group flex-grow">
+            <label for="searchInput">Target Item / Keyword</label>
+            <div class="input-with-icon">
+              <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="searchInput" placeholder="e.g. iPhone 15 Pro, M2 MacBook, Herman Miller, RTX 4070, BMW..." value="iPhone 15 Pro" required>
+            </div>
+          </div>
+
+          <!-- Location Selector -->
+          <div class="input-field-group location-group">
+            <label for="locationInput">Marketplace Location / City</label>
+            <div class="input-with-icon">
+              <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              <input type="text" id="locationInput" placeholder="e.g. tallinn, london, newyork..." value="tallinn" list="popularCitiesList">
+              <datalist id="popularCitiesList">
+                <option value="tallinn">Tallinn, Estonia</option>
+                <option value="london">London, UK</option>
+                <option value="newyork">New York, US</option>
+                <option value="losangeles">Los Angeles, US</option>
+                <option value="miami">Miami, US</option>
+                <option value="chicago">Chicago, US</option>
+                <option value="toronto">Toronto, Canada</option>
+                <option value="berlin">Berlin, Germany</option>
+                <option value="paris">Paris, France</option>
+                <option value="sydney">Sydney, Australia</option>
+              </datalist>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Sub-Row -->
+        <div class="form-row filter-row">
+          <div class="input-field-group">
+            <label for="minPriceInput">Min Price ($)</label>
+            <input type="number" id="minPriceInput" placeholder="0" min="0">
+          </div>
+
+          <div class="input-field-group">
+            <label for="maxPriceInput">Max Price ($)</label>
+            <input type="number" id="maxPriceInput" placeholder="Any" min="0">
+          </div>
+
+          <div class="input-field-group">
+            <label for="sortSelect">Sort Listings</label>
+            <select id="sortSelect">
+              <option value="dealScore">⚡ AI Deal Score (Best First)</option>
+              <option value="profit">💰 Highest Flip Profit</option>
+              <option value="priceAsc">📉 Price: Low to High</option>
+              <option value="priceDesc">📈 Price: High to Low</option>
+            </select>
+          </div>
+
+          <div class="input-field-group flex-end">
+            <button type="submit" class="primary-scan-btn" id="scanBtn">
+              <span class="btn-spinner hidden" id="scanSpinner"></span>
+              <svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span id="scanBtnText">Scan Marketplace & Value Deals</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Trending Suggestions -->
+        <div class="trending-chips">
+          <span class="chips-label">Quick Scan:</span>
+          <button type="button" class="preset-chip" data-query="iPhone 15 Pro">📱 iPhone 15 Pro</button>
+          <button type="button" class="preset-chip" data-query="M2 MacBook Air">💻 M2 MacBook</button>
+          <button type="button" class="preset-chip" data-query="RTX 4070 Ti">🎮 RTX 4070 Ti</button>
+          <button type="button" class="preset-chip" data-query="Herman Miller Aeron">🪑 Herman Miller</button>
+          <button type="button" class="preset-chip" data-query="PlayStation 5">🕹️ PS5 Bundle</button>
+          <button type="button" class="preset-chip" data-query="Sony WH-1000XM5">🎧 Sony XM5</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- AI Market Pulse Executive Briefing (Hidden until search / analysis runs) -->
+    <section class="market-pulse-card hidden" id="marketPulseCard">
+      <div class="pulse-header">
+        <div class="pulse-title-wrap">
+          <div class="pulse-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div>
+            <h3>Gemini AI Market Pulse</h3>
+            <p class="pulse-subtitle" id="pulseQueryLabel">Market Valuation Analysis</p>
+          </div>
+        </div>
+        <div class="pulse-stat-grid">
+          <div class="stat-pill">
+            <span class="stat-num" id="statAvgPrice">--</span>
+            <span class="stat-desc">Fair Market Avg</span>
+          </div>
+          <div class="stat-pill highlight-steal">
+            <span class="stat-num" id="statSteals">--</span>
+            <span class="stat-desc">Steals Detected</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-num" id="statTotalItems">0</span>
+            <span class="stat-desc">Listings Scanned</span>
+          </div>
+        </div>
+      </div>
+      <div class="pulse-briefing">
+        <p id="pulseBriefingText">Analyzing market dynamics, historical retail values, and seller price variance...</p>
+      </div>
+      
+      <!-- Category Filter Tabs -->
+      <div class="results-filter-bar">
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all">All Listings (<span id="countAll">0</span>)</button>
+          <button class="filter-tab" data-filter="steals">🔥 Steals (90+) (<span id="countSteals">0</span>)</button>
+          <button class="filter-tab" data-filter="great">⚡ Great Deals (75+) (<span id="countGreat">0</span>)</button>
+          <button class="filter-tab" data-filter="bookmarks">⭐ Saved (<span id="countSaved">0</span>)</button>
+        </div>
+        <div class="export-actions">
+          <button class="export-btn" id="exportCsvBtn" title="Export listings to CSV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Listings Grid Container -->
+    <main class="listings-section">
+      <div class="section-top-bar">
+        <h2 id="resultsHeading">Marketplace Feed</h2>
+        <span class="source-tag" id="resultsSourceTag">Awaiting Scan</span>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon-wrap">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
+        <h3>Ready to Hunt Deals</h3>
+        <p>Type in your item above, pick a location, and click <strong>Scan Marketplace</strong>. MarketPulse AI will cross-reference listings with Gemini to surface high-profit deals and hidden gems.</p>
+        <button class="ghost-btn" id="sampleSearchBtn">Run Quick Sample Scan</button>
+      </div>
+
+      <!-- Cards Grid -->
+      <div class="cards-grid hidden" id="cardsGrid">
+        <!-- Cards dynamically injected here -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Deal Inspection & Negotiation Offer Modal -->
+  <div class="modal-backdrop hidden" id="dealModal">
+    <div class="modal-container inspector-modal">
+      <button class="modal-close-btn" id="closeDealModal">&times;</button>
+      <div class="modal-body-split">
+        <!-- Left: Image & Meta -->
+        <div class="inspector-left">
+          <div class="inspector-img-box">
+            <img id="modalItemImg" src="" alt="Item photo">
+            <div class="score-badge-overlay" id="modalScoreBadge">94</div>
+          </div>
+          <div class="inspector-meta">
+            <h3 id="modalItemTitle">Listing Title</h3>
+            <div class="price-row">
+              <span class="modal-price" id="modalItemPrice">$0</span>
+              <span class="modal-fmv" id="modalItemFmv">FMV: $0</span>
+              <span class="modal-savings" id="modalItemSavings">-30%</span>
+            </div>
+            <div class="meta-pills">
+              <span class="meta-pill" id="modalItemLoc">📍 City</span>
+              <span class="meta-pill" id="modalItemSeller">👤 Seller</span>
+            </div>
+            <div class="description-box">
+              <h4>Listing Description</h4>
+              <p id="modalItemDesc">No description available.</p>
+            </div>
+            <a id="modalItemFbLink" href="#" target="_blank" rel="noopener" class="primary-fb-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              Open on Facebook Marketplace
+            </a>
+          </div>
+        </div>
+
+        <!-- Right: AI Deep Dive & Negotiation Message Generator -->
+        <div class="inspector-right">
+          <div class="ai-assessment-card">
+            <div class="ai-card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Gemini Deal Valuation Report
+            </div>
+            <div class="verdict-banner" id="modalVerdictBanner">
+              <strong id="modalVerdictWord">INSANE STEAL</strong>: <span id="modalVerdictDetails">Priced 40% below typical resale value.</span>
+            </div>
+
+            <div class="metrics-row">
+              <div class="metric-box">
+                <span class="label">Flip Profit</span>
+                <span class="val green" id="modalEstProfit">+$0</span>
+              </div>
+              <div class="metric-box">
+                <span class="label">Target Offer</span>
+                <span class="val" id="modalTargetOffer">$0</span>
+              </div>
+              <div class="metric-box">
+                <span class="label">Deal Score</span>
+                <span class="val" id="modalScoreVal">85/100</span>
+              </div>
+            </div>
+
+            <div class="tactic-box">
+              <h4>🎯 Recommended Negotiation Angle</h4>
+              <p id="modalTacticText">Offer cash for same day pickup.</p>
+            </div>
+
+            <!-- Red Flags Check -->
+            <div class="flags-box" id="modalFlagsBox">
+              <h4>🛡️ Risk & Legitimacy Check</h4>
+              <ul id="modalFlagsList">
+                <li>Clean listing - no immediate red flags detected.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Instant Message Generator -->
+          <div class="offer-generator-section">
+            <div class="generator-header">
+              <h4>💬 Instant Copy-Paste Messages for Seller</h4>
+              <button class="ghost-btn-sm" id="regenMessagesBtn">Regenerate</button>
+            </div>
+            <div class="messages-list" id="generatedMessagesList">
+              <div class="message-card">
+                <div class="message-style-tag">⚡ Fast Cash Pick-Up</div>
+                <p class="message-text">Hi! Is this still available? I can come pick it up today with cash for $X. Let me know if that works for you!</p>
+                <button class="copy-message-btn" data-copy="Hi! Is this still available?">Copy Message</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings & Credentials Modal -->
+  <div class="modal-backdrop hidden" id="settingsModal">
+    <div class="modal-container settings-modal">
+      <button class="modal-close-btn" id="closeSettingsModal">&times;</button>
+      
+      <div class="settings-header">
+        <div class="settings-title-group">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <div>
+            <h3>Credentials & Integration Settings</h3>
+            <p>Your API key and session cookies are stored securely in your browser's local storage.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-body">
+        <!-- 1. Gemini API Key Section -->
+        <div class="setting-block">
+          <div class="block-header">
+            <span class="block-num">1</span>
+            <div>
+              <h4>Google Gemini API Key</h4>
+              <p>Powers the deal valuation engine, fair market pricing, and scam detection.</p>
+            </div>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="text-link">Get Free Key &rarr;</a>
+          </div>
+          <div class="input-with-icon">
+            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy...">
+            <button type="button" class="visibility-toggle-btn" id="toggleKeyVisibility" title="Show/Hide Key">👁️</button>
+          </div>
+          <div class="sub-setting-row">
+            <label for="geminiModelSelect">Gemini Model:</label>
+            <select id="geminiModelSelect">
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended: Ultra-fast & smart)</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash (High quota)</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 2. Facebook Session Cookies Section -->
+        <div class="setting-block">
+          <div class="block-header">
+            <span class="block-num">2</span>
+            <div>
+              <h4>Facebook Session Cookies</h4>
+              <p>Required to search live Facebook Marketplace listings for any location without getting blocked.</p>
+            </div>
+          </div>
+
+          <div class="textarea-field">
+            <textarea id="fbCookiesInput" rows="4" placeholder="Paste your Facebook Cookie header (e.g. c_user=1000...; xs=2...; datr=...; or JSON cookie export)"></textarea>
+          </div>
+
+          <div class="cookie-test-bar">
+            <button type="button" class="secondary-btn" id="verifyCookiesBtn">
+              <span class="btn-spinner hidden" id="verifySpinner"></span>
+              Verify Facebook Cookies
+            </button>
+            <span class="verify-feedback" id="verifyFeedback"></span>
+          </div>
+
+          <!-- Accordion: How to get FB cookies -->
+          <details class="cookie-guide-details">
+            <summary>📖 How to get your Facebook cookies in 30 seconds</summary>
+            <div class="guide-content">
+              <ol>
+                <li>Open <strong><a href="https://www.facebook.com" target="_blank" rel="noopener">Facebook.com</a></strong> in Chrome/Edge and ensure you are logged in.</li>
+                <li>Press <kbd>F12</kbd> (or right click &rarr; <em>Inspect</em>) to open Developer Tools.</li>
+                <li>Click the <strong>Application</strong> tab (or <em>Storage</em> in Firefox) at the top.</li>
+                <li>Under the left sidebar, expand <strong>Cookies</strong> &rarr; click <code>https://www.facebook.com</code>.</li>
+                <li>Look for the values of <code>c_user</code> and <code>xs</code>. You can paste them as:
+                  <code>c_user=YOUR_ID; xs=YOUR_XS_TOKEN;</code>
+                </li>
+                <li>Alternatively, in the <strong>Network</strong> tab, refresh the page, click any request to <code>facebook.com</code>, look at <em>Request Headers</em> &rarr; right click <strong>Cookie</strong> &rarr; <em>Copy value</em>.</li>
+              </ol>
+              <p class="security-note">🔒 <strong>Privacy Guarantee</strong>: Your cookies are stored only in your private browser session and only sent to your backend server to query the Marketplace search endpoint. They are never shared or logged.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button type="button" class="ghost-btn" id="cancelSettingsBtn">Close</button>
+        <button type="button" class="primary-btn" id="saveSettingsBtn">Save & Apply Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
