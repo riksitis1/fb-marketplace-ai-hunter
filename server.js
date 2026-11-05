@@ -191,6 +191,9 @@ function extractFacebookListings(html, query, locationName) {
         const priceM = segment.match(/"formatted_amount":"((?:[^"\\]|\\.)*)"/);
         const idM = segment.match(/"id":"(\d{8,})"/);
         if (!priceM || !idM || seenIds.has(idM[1])) return;
+        // Skip anything Facebook itself flags as sold / pending / hidden / not live
+        if (/"(?:is_sold|is_pending|is_hidden|is_disabled_by_admin|is_draft)":true/.test(segment) ||
+            /"is_live":false/.test(segment)) return;
         // Only use a photo found inside this listing's own segment (never a neighbour's)
         const photoRe = /"(?:primary_listing_photo|listing_photos?)"[\s\S]{0,300}?"uri":"((?:[^"\\]|\\.)*)"/;
         const photoM = segment.match(photoRe);
@@ -216,6 +219,40 @@ function extractFacebookListings(html, query, locationName) {
   }
 
   return listings;
+}
+
+// Check a listing's own page: returns false only when it is clearly sold, removed or private.
+// If the check is inconclusive (timeout, odd response) we keep the listing.
+async function isListingAvailable(item, cookieString) {
+  try {
+    const r = await fetch(item.link, {
+      headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'en-US,en;q=0.9', 'Cookie': cookieString },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(7000)
+    });
+    if (r.status === 404 || r.status === 410) return false;
+    if (r.status >= 300 && r.status < 400) return true; // login redirect etc. = inconclusive
+    const page = await r.text();
+    if (/"(?:is_sold|is_pending|is_hidden)":true/.test(page) || /"is_live":false/.test(page)) return false;
+    if (/no longer available|isn(?:'|\\u0027|&#039;)t available anymore|listing (?:is|was) removed|content isn(?:'|&#039;)t available right now/i.test(page)) return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+async function filterAvailable(items, cookieString) {
+  const capped = items.slice(0, 24);
+  const keep = new Array(capped.length).fill(true);
+  let next = 0;
+  const worker = async () => {
+    while (next < capped.length) {
+      const i = next++;
+      keep[i] = await isListingAvailable(capped[i], cookieString);
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, worker)); // 4 at a time to stay gentle
+  return capped.filter((_, i) => keep[i]);
 }
 
 // Generate Realistic Demo Listings when cookies are omitted or for instant testing
@@ -343,7 +380,7 @@ app.post('/api/search', async (req, res) => {
     }
 
     // Live Facebook Request
-    let searchUrl = `https://www.facebook.com/marketplace/${encodeURIComponent(cleanLocation)}/search/?query=${encodeURIComponent(cleanQuery)}`;
+    let searchUrl = `https://www.facebook.com/marketplace/${encodeURIComponent(cleanLocation)}/search/?query=${encodeURIComponent(cleanQuery)}&availability=in%20stock`;
     if (minPrice) searchUrl += `&minPrice=${encodeURIComponent(minPrice)}`;
     if (maxPrice) searchUrl += `&maxPrice=${encodeURIComponent(maxPrice)}`;
 
@@ -371,7 +408,19 @@ app.post('/api/search', async (req, res) => {
     }
 
     const html = await response.text();
-    const liveListings = extractFacebookListings(html, cleanQuery, location);
+    const foundListings = extractFacebookListings(html, cleanQuery, location);
+    // Double-check each listing's own page so sold / deleted / private ones are dropped
+    const liveListings = await filterAvailable(foundListings, cookieString);
+
+    if (foundListings.length > 0 && liveListings.length === 0) {
+      return res.json({
+        success: true,
+        source: 'live_facebook',
+        notice: 'All matching listings were sold, removed or private.',
+        count: 0,
+        items: []
+      });
+    }
 
     if (liveListings.length === 0) {
       // If live scraping found 0 items (e.g. dynamic client-rendered GraphQL), fallback gracefully to demo sandbox
