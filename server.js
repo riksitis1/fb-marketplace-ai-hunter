@@ -465,8 +465,8 @@ app.post('/api/analyze-deals', async (req, res) => {
       return res.status(400).json({ success: false, error: 'No items provided for analysis.' });
     }
 
-    // Limit to top 15 items per batch for optimal Gemini response speed & token quota
-    const candidateItems = items.slice(0, 15).map((item, idx) => ({
+    // Limit to top 24 items per batch for optimal Gemini response speed & token quota
+    const candidateItems = items.slice(0, 24).map((item, idx) => ({
       index: idx,
       id: item.id,
       title: item.title,
@@ -481,7 +481,7 @@ app.post('/api/analyze-deals', async (req, res) => {
 Your task is to analyze local Facebook Marketplace listings for the search query "${query || 'items'}" in location "${location || 'local'}".
 
 For EACH listing:
-1. Estimate current Fair Market Value (FMV) in the same currency based on typical secondary market prices (eBay completed, Swappa, local classifieds).
+1. Estimate current Fair Market Value (FMV) in the same currency based on typical secondary market prices (eBay completed, Swappa, local classifieds). IMPORTANT: use the SAME currency symbol as the listed prices (e.g. € for €600) in every money field.
 2. Calculate the Deal Score from 1 to 100:
    - 90 - 100: "INSANE STEAL" (Heavily underpriced, high demand, instant flip profit)
    - 75 - 89: "GREAT VALUE" (Solid deal, 20-35% below fair market)
@@ -536,6 +536,7 @@ Respond ONLY with valid JSON conforming strictly to this format:
       ],
       generationConfig: {
         temperature: 0.2,
+        maxOutputTokens: 8192,
         responseMimeType: 'application/json'
       }
     };

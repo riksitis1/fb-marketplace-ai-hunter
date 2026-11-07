@@ -283,6 +283,13 @@
 
     // Set Loading UI
     setSearchLoading(true);
+    // Clear stats from any previous scan so old numbers are never shown for new results
+    state.marketPulse = null;
+    state.currentFilter = 'all';
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === 'all'));
+    elements.marketPulseCard.classList.add('hidden');
+    elements.statAvgPrice.textContent = '--';
+    elements.statSteals.textContent = '--';
     elements.emptyState.classList.add('hidden');
     elements.cardsGrid.classList.remove('hidden');
     elements.cardsGrid.innerHTML = `
@@ -342,6 +349,10 @@
       if (state.geminiApiKey) {
         await analyzeListingsWithGemini(query, location);
       } else {
+        elements.marketPulseCard.classList.remove('hidden');
+        elements.pulseQueryLabel.textContent = `${query} in ${location}`;
+        elements.pulseBriefingText.textContent = 'AI scoring is off. Open "Credentials & Setup" and add your Gemini API key to get deal scores, fair prices and negotiation tips.';
+        updateFilterCounts();
         showToast('Tip: Add your Gemini API Key in Settings to unlock AI deal scoring & arbitrage valuation!', 'warning', 6000);
       }
 
@@ -401,6 +412,7 @@
     } catch (err) {
       console.error('AI Analysis error:', err);
       elements.pulseBriefingText.textContent = `AI analysis warning: ${err.message}. Showing raw listings.`;
+      updateFilterCounts();
       showToast(`AI Valuation: ${err.message}`, 'warning');
     }
   }
@@ -787,6 +799,17 @@
     elements.fbCookiesInput.value = '';
     updateStatusPills();
     showToast('All your data was removed from this browser.', 'success');
+  });
+
+  // Close modals with Escape or by clicking the dark backdrop
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      elements.dealModal.classList.add('hidden');
+      elements.settingsModal.classList.add('hidden');
+    }
+  });
+  [elements.dealModal, elements.settingsModal].forEach(m => {
+    m.addEventListener('click', (e) => { if (e.target === m) m.classList.add('hidden'); });
   });
 
   // Initialize
