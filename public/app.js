@@ -335,7 +335,7 @@
         elements.cardsGrid.innerHTML = `
           <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
             <h3>No listings found</h3>
-            <p style="color: var(--text-muted);">Try a broader keyword or expand your price filters.</p>
+            <p style="color: var(--text-muted); max-width: 560px; margin: 8px auto 0;">${esc(searchData.notice || 'Try a broader keyword or expand your price filters.')}</p>
           </div>
         `;
         setSearchLoading(false);

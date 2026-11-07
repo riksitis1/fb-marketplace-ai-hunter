@@ -379,12 +379,15 @@ app.post('/api/search', async (req, res) => {
       });
     }
 
-    // Live Facebook Request
-    let searchUrl = `https://www.facebook.com/marketplace/${encodeURIComponent(cleanLocation)}/search/?query=${encodeURIComponent(cleanQuery)}&availability=in%20stock`;
-    if (minPrice) searchUrl += `&minPrice=${encodeURIComponent(minPrice)}`;
-    if (maxPrice) searchUrl += `&maxPrice=${encodeURIComponent(maxPrice)}`;
-
-    const response = await fetch(searchUrl, {
+    // Live Facebook Request (first with the in-stock filter, then plain if that finds nothing)
+    const buildUrl = (withAvailability) => {
+      let u = `https://www.facebook.com/marketplace/${encodeURIComponent(cleanLocation)}/search/?query=${encodeURIComponent(cleanQuery)}`;
+      if (withAvailability) u += '&availability=in%20stock';
+      if (minPrice) u += `&minPrice=${encodeURIComponent(minPrice)}`;
+      if (maxPrice) u += `&maxPrice=${encodeURIComponent(maxPrice)}`;
+      return u;
+    };
+    const fetchSearch = (url) => fetch(url, {
       method: 'GET',
       headers: {
         'User-Agent': USER_AGENT,
@@ -396,10 +399,26 @@ app.post('/api/search', async (req, res) => {
         'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1',
         'Cookie': cookieString
-      }
+      },
+      signal: AbortSignal.timeout(20000)
     });
 
-    if (response.status === 401 || response.status === 403 || response.url.includes('login')) {
+    let response = await fetchSearch(buildUrl(true));
+    let html = '';
+    let foundListings = [];
+    if (response.ok && !response.url.includes('login')) {
+      html = await response.text();
+      foundListings = extractFacebookListings(html, cleanQuery, location);
+    }
+    if (foundListings.length === 0 && !(response.status === 401 || response.status === 403 || response.url.includes('login'))) {
+      response = await fetchSearch(buildUrl(false));
+      if (response.ok && !response.url.includes('login')) {
+        html = await response.text();
+        foundListings = extractFacebookListings(html, cleanQuery, location);
+      }
+    }
+
+    if (response.status === 401 || response.status === 403 || response.url.includes('login') || response.url.includes('checkpoint')) {
       return res.status(401).json({
         success: false,
         source: 'facebook_blocked',
@@ -407,8 +426,6 @@ app.post('/api/search', async (req, res) => {
       });
     }
 
-    const html = await response.text();
-    const foundListings = extractFacebookListings(html, cleanQuery, location);
     // Double-check each listing's own page so sold / deleted / private ones are dropped
     const liveListings = await filterAvailable(foundListings, cookieString);
 
@@ -423,14 +440,14 @@ app.post('/api/search', async (req, res) => {
     }
 
     if (liveListings.length === 0) {
-      // If live scraping found 0 items (e.g. dynamic client-rendered GraphQL), fallback gracefully to demo sandbox
-      const fallbackItems = generateDemoListings(cleanQuery, location, minPrice, maxPrice);
+      // Never pass fake listings off as real ones when the user is searching live
+      console.warn(`Live search returned no parsable listings (HTTP ${response.status}, ${html.length} bytes)`);
       return res.json({
         success: true,
-        source: 'fallback_sandbox',
-        notice: 'Facebook delivered an empty or obfuscated server response for this location. Showing intelligent demo results for testing.',
-        count: fallbackItems.length,
-        items: fallbackItems
+        source: 'live_facebook',
+        notice: `Facebook gave no readable listings (HTTP ${response.status}). Check your cookies (Verify button), try another keyword or city, or turn on the Demo switch to preview the app with sample data.`,
+        count: 0,
+        items: []
       });
     }
 
